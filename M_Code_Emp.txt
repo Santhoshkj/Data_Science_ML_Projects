@@ -1,0 +1,21 @@
+let
+    Source = Excel.Workbook(File.Contents("F:\KSR Consulting Services\KSR_SQL_POWERBI_SEP_2021\Power BI\EmployeeData.xlsx"), null, true),
+    EmployeeData1_Sheet = Source{[Item="EmployeeData1",Kind="Sheet"]}[Data],
+    #"Promoted Headers" = Table.PromoteHeaders(EmployeeData1_Sheet, [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"EmployeeID", Int64.Type}, {"NationalIDNumber", Int64.Type}, {"ContactID", Int64.Type}, {"LoginID", type text}, {"ManagerID", Int64.Type}, {"Title", type text}, {"BirthDate", type datetime}, {"MaritalStatus", type text}, {"Gender", type text}, {"HireDate", type datetime}, {"Dept", type text}, {"Salary", Int64.Type}, {"Job Grade", type text}, {"CurrentFlag", Int64.Type}, {"rowguid", type text}}),
+    #"Removed Col NationalID" = Table.RemoveColumns(#"Changed Type",{"NationalIDNumber"}),
+    #"Title to FullName" = Table.RenameColumns(#"Removed Col NationalID",{{"Title", "Full Name"}}),
+    #"Birthdate datetime to date" = Table.TransformColumnTypes(#"Title to FullName",{{"BirthDate", type date}}),
+    #"S to Single" = Table.ReplaceValue(#"Birthdate datetime to date","S","Single",Replacer.ReplaceText,{"MaritalStatus"}),
+    #"M to Married" = Table.ReplaceValue(#"S to Single","M","Married",Replacer.ReplaceText,{"MaritalStatus"}),
+    #"Removed ContactID" = Table.RemoveColumns(#"M to Married",{"ContactID"}),
+    #"Splited FullName" = Table.SplitColumn(#"Removed ContactID", "Full Name", Splitter.SplitTextByEachDelimiter({" "}, QuoteStyle.Csv, false), {"Full Name.1", "Full Name.2"}),
+    #"Full Name to Text" = Table.TransformColumnTypes(#"Splited FullName",{{"Full Name.1", type text}, {"Full Name.2", type text}}),
+    #"Rename to FirstName" = Table.RenameColumns(#"Full Name to Text",{{"Full Name.1", "First Name"}, {"Full Name.2", "Last Name"}}),
+    #"Rename to LastName" = Table.RemoveColumns(#"Rename to FirstName",{"LoginID", "ManagerID"}),
+    #"M to Male" = Table.ReplaceValue(#"Rename to LastName","M","Male",Replacer.ReplaceText,{"Gender"}),
+    #"F to Female" = Table.ReplaceValue(#"M to Male","F","Female",Replacer.ReplaceText,{"Gender"}),
+    #"Hiredate datetime to date" = Table.TransformColumnTypes(#"F to Female",{{"HireDate", type date}}),
+    #"Currentflag and rowid" = Table.RemoveColumns(#"Hiredate datetime to date",{"CurrentFlag", "rowguid", "First Name"})
+in
+    #"Currentflag and rowid"
